@@ -111,6 +111,8 @@ static ssize_t led_chrdev_write(struct file *filp, const char __user * buf,
 	
 	kstrtoul_from_user(buf, tmp, 10, &ret);
 
+	iowrite32(0x43, va_clkaddr); // 开启GPIO时钟
+	
 	val = ioread32(led_cdev->va_bsrr);
 	if (ret == 0){
 		val |= (0x01 << (led_cdev->led_pin+16)); // 设置GPIO引脚输出低电平

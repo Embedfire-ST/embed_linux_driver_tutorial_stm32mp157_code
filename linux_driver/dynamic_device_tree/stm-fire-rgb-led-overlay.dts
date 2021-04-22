@@ -1,0 +1,65 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
+/*
+ * Copyright (C) STMicroelectronics 2018 - All Rights Reserved
+ * Author: Alexandre Torgue <alexandre.torgue@st.com>.
+ */
+
+/dts-v1/;
+/plugin/;
+//#include "../stm32mp157c.dtsi"
+#include <dt-bindings/pinctrl/stm32-pinfunc.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/mfd/st,stpmic1.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/{
+	fragment@0{
+		target-path = "/";
+		__overlay__ {
+			/*添加led节点*/
+			rgb_led{
+				#address-cells = <1>;
+				#size-cells = <1>;
+				compatible = "fire,rgb_led";
+
+				/*红灯节点*/
+				ranges;
+				rgb_led_red@0x50002000{
+						compatible = "fire,rgb_led_red";
+						reg = <	0x50002000 0x00000004
+								0x50002004 0x00000004
+								0x50002008 0x00000004
+								0x5000200C 0x00000004
+								0x50002018 0x00000004
+								0x50000A28 0x00000004>;
+						status = "okay";
+				};
+
+				/*绿灯节点*/
+				rgb_led_green@0x50000A28{
+						compatible = "fire,rgb_led_green";
+						reg = < 0x50008000 0x00000004
+								0x50008004 0x00000004
+								0x50008008 0x00000004
+								0x5000800C 0x00000004
+								0x50008018 0x00000004
+								0x50000A28 0x00000004>;
+						status = "okay";
+				};
+
+				/*蓝灯节点*/
+				rgb_led_blue@0x50000A28{
+						compatible = "fire,rgb_led_blue";
+						reg = <	0x50003000 0x00000004
+								0x50003004 0x00000004
+								0x50003008 0x00000004
+								0x5000300C 0x00000004
+								0x50003018 0x00000004
+								0x50000A28 0x00000004>;
+						status = "okay";
+				};
+			};
+		};
+	};
+	
+};
