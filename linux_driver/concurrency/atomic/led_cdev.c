@@ -50,6 +50,8 @@ struct led_chrdev {
 
 unsigned int __iomem *va_clkaddr;
 
+static atomic_t test_atomic = ATOMIC_INIT(1);
+
 static int led_chrdev_open(struct inode *inode, struct file *filp)
 {
 	unsigned int val = 0;
@@ -59,8 +61,19 @@ static int led_chrdev_open(struct inode *inode, struct file *filp)
 	filp->private_data =
 	    container_of(inode->i_cdev, struct led_chrdev, dev);
 
+	if(atomic_read(&test_atomic))
+	{
+		atomic_set(&test_atomic,0);
+	}
+    else
+    {
+		printk("\n driver on using!  open failed !!!\n");
+		return - EBUSY;
+    }
+
 	printk("open\n");
 
+	va_clkaddr = ioremap(RCC_MP_GPIOENA, 4);// 映射物理地址到虚拟地址：gpio时钟rcc寄存器
 	val |= (0x43); // 开启a、b、g的时钟 
 	iowrite32(val, va_clkaddr);
 
@@ -93,7 +106,10 @@ static int led_chrdev_open(struct inode *inode, struct file *filp)
 
 static int led_chrdev_release(struct inode *inode, struct file *filp)
 {
-
+	iounmap(va_clkaddr); // 释放GPIO时钟寄存器虚拟地址
+    
+    atomic_set(&test_atomic,1);
+    printk(" \n finished  !!!\n");
 	return 0;
 }
 
@@ -143,8 +159,6 @@ static __init int led_chrdev_init(void)
 	dev_t cur_dev;
 
 	printk("led chrdev init \n");
-	
-	va_clkaddr = ioremap(RCC_MP_GPIOENA, 4);// 映射物理地址到虚拟地址：gpio时钟rcc寄存器
 
 	led_cdev[0].va_moder   = ioremap(GPIOA_MODER, 4);	// 映射模式寄存器 物理地址 到 虚拟地址
 	led_cdev[0].va_otyper  = ioremap(GPIOA_OTYPER, 4);	// 映射输出类型寄存器 物理地址 到 虚拟地址
@@ -190,8 +204,6 @@ static __exit void led_chrdev_exit(void)
 	int i;
 	dev_t cur_dev;
 	printk("led chrdev exit\n");
-	
-	iounmap(va_clkaddr); // 释放GPIO时钟寄存器虚拟地址
 
 	for (i = 0; i < DEV_CNT; i++) {
 		iounmap(led_cdev[i].va_moder); 		// 释放模式寄存器虚拟地址

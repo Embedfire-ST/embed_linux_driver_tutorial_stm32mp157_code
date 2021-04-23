@@ -4,6 +4,7 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 #include <linux/io.h>
+#include <linux/delay.h>
 
 #define DEV_NAME            "led_chrdev"
 #define DEV_CNT                 (3)
@@ -36,6 +37,8 @@
 
 static dev_t devno;
 struct class *led_chrdev_class;
+
+static struct mutex mu_lock;
 
 struct led_chrdev {
 	struct cdev dev;
@@ -85,7 +88,7 @@ static int led_chrdev_open(struct inode *inode, struct file *filp)
 	iowrite32(val,led_cdev->va_pupdr);
 	// 设置置位寄存器：默认输出低电平
 	val = ioread32(led_cdev->va_bsrr);
-	val |= ((unsigned int)0x1 << (led_cdev->led_pin + 16));
+	val |= ((unsigned int)0x1 << (led_cdev->led_pin));
 	iowrite32(val, led_cdev->va_bsrr);
 
 	return 0;
@@ -93,7 +96,8 @@ static int led_chrdev_open(struct inode *inode, struct file *filp)
 
 static int led_chrdev_release(struct inode *inode, struct file *filp)
 {
-
+    
+    printk(" \n finished  !!!\n");
 	return 0;
 }
 
@@ -102,24 +106,38 @@ static ssize_t led_chrdev_write(struct file *filp, const char __user * buf,
 {
 	unsigned long val = 0;
 	unsigned long ret = 0;
-
+	int i = 0;
 	int tmp = count;
 
 	struct led_chrdev *led_cdev = (struct led_chrdev *)filp->private_data;
 	
 	kstrtoul_from_user(buf, tmp, 10, &ret);
 
+    mutex_lock(&mu_lock);
+	
+	printk("start write\n");
+	
 	iowrite32(0x43, va_clkaddr); // 开启GPIO时钟
 	
-	val = ioread32(led_cdev->va_bsrr);
-	if (ret == 0){
+	for (i = ret; i > 0; i--)
+	{
+		printk("the data is %d \n", i);
+
+		/*点亮led 灯*/
+		val = 0;
 		val |= (0x01 << (led_cdev->led_pin+16)); // 设置GPIO引脚输出低电平
-	}
-	else{
+		iowrite32(val, led_cdev->va_bsrr);
+		mdelay(100);
+
+		/*熄灭led 灯*/
+		val = 0;
 		val |= (0x01 << led_cdev->led_pin); // 设置GPIO引脚输出高电平
+		iowrite32(val, led_cdev->va_bsrr);
+		mdelay(100);
 	}
 
-	iowrite32(val, led_cdev->va_bsrr);
+    mutex_unlock(&mu_lock);
+
 	*ppos += tmp;
 	return tmp;
 }
@@ -143,7 +161,7 @@ static __init int led_chrdev_init(void)
 	dev_t cur_dev;
 
 	printk("led chrdev init \n");
-	
+
 	va_clkaddr = ioremap(RCC_MP_GPIOENA, 4);// 映射物理地址到虚拟地址：gpio时钟rcc寄存器
 
 	led_cdev[0].va_moder   = ioremap(GPIOA_MODER, 4);	// 映射模式寄存器 物理地址 到 虚拟地址
@@ -179,7 +197,9 @@ static __init int led_chrdev_init(void)
 		device_create(led_chrdev_class, NULL, cur_dev, NULL,
 			      DEV_NAME "%d", i);
 	}
-
+	
+    mutex_init(&mu_lock);
+	
 	return 0;
 }
 
