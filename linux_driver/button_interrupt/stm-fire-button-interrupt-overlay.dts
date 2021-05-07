@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
+/*
+ * Copyright (C) STMicroelectronics 2018 - All Rights Reserved
+ * Author: Alexandre Torgue <alexandre.torgue@st.com>.
+ */
+
+/dts-v1/;
+/plugin/;
+//#include "../stm32mp157c.dtsi"
+#include <dt-bindings/pinctrl/stm32-pinfunc.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/mfd/st,stpmic1.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+ / {
+     fragment@0 {
+          target-path = "/";
+         __overlay__ { 
+            button_interrupt {
+            	compatible = "button_interrupt";
+            	pinctrl-names = "default";
+            	pinctrl-0 = <&pinctrl_button>;
+            	button_gpio = <&gpiob 13 GPIO_ACTIVE_LOW>;  //默认低电平，按键按下高电平
+            	status = "okay";
+				interrupts-extended = <&gpiob 13 IRQ_TYPE_EDGE_RISING>;
+				interrupt-names = "button_interrupt";				
+            	//interrupt-parent = <&gpiob>;
+            	//interrupts = <13 IRQ_TYPE_EDGE_RISING>;     // 指定中断，触发方式为上升沿触发。
+            };   
+         };
+     };
+
+     fragment@1 {
+         target = <&pinctrl>;
+         __overlay__ { 
+        pinctrl_button: buttongrp {
+				pins {
+					pinmux = <STM32_PINMUX('B', 13, GPIO)>;
+					drive-push-pull;
+				};
+			};
+         };
+     };
+ };
