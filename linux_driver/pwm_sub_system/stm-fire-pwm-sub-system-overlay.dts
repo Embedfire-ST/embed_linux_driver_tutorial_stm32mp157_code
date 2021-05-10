@@ -1,0 +1,69 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
+/*
+ * Copyright (C) STMicroelectronics 2018 - All Rights Reserved
+ * Author: Alexandre Torgue <alexandre.torgue@st.com>.
+ */
+
+/dts-v1/;
+/plugin/;
+#include <dt-bindings/pinctrl/stm32-pinfunc.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/mfd/st,stpmic1.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+/ {
+
+    fragment@0 {
+        target = <&timers2>;
+        __overlay__ {
+            status = "okay";
+            /delete-property/dmas;
+            /delete-property/dma-names;
+            pwm2: pwm {
+                /* configure PWM pins on TIM2_CH3 */
+                pinctrl-0 = <&pwm2_pins_a>;
+                pinctrl-1 = <&pwm2_sleep_pins_a>;
+                pinctrl-names = "default", "sleep";
+                /* enable PWM on TIM2 */
+                #pwm-cells = <2>;
+                status = "okay";
+            };
+        };
+    };
+
+    fragment@1 {
+        target = <&pinctrl>;
+        __overlay__ { 
+            /* select TIM2_CH3 alternate function 1 on 'PB10' */
+            pwm2_pins_a: pwm2-0 {
+                pins {
+                    pinmux = <STM32_PINMUX('B', 10, AF1)>;
+                    bias-pull-down;
+                    drive-push-pull;
+                    slew-rate = <0>;
+                };
+            };
+            /* configure 'PB10' as analog input in low-power mode */
+            pwm2_sleep_pins_a: pwm2-sleep-0 {
+                pins {
+                    pinmux = <STM32_PINMUX('B', 10, ANALOG)>;
+                };
+            };
+        };
+    };
+
+    fragment@2 {
+        target-path="/";
+        __overlay__{
+            pwm_test {
+                compatible = "pwm_test"; 
+                status = "okay";
+                front {
+                    pwm-names = "test_tim2_ch3_pwm2";
+                    pwms = <&pwm2 2 1000000>;
+                };
+            };
+        };
+    };
+};
